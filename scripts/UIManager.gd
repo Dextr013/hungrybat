@@ -77,8 +77,7 @@ func _ready():
 		goal_text.visible = not endless_mode
 	var best_label: RichTextLabel = get_node_or_null("BestScoreText")
 	if best_label:
-		best_score = best_score
-		best_label.text = "Best: " + str(best_score)
+		best_label.text = _tr("best") + ": " + str(best_score)
 	if pause_panel:
 		pause_panel.visible = false
 	_update_booster_labels()
@@ -88,6 +87,10 @@ func _ready():
 	_setup_lang_selector()
 	_setup_daily_reward()
 	_bind_volume_sliders()
+
+func _tr(key: String) -> String:
+	var loc := get_node_or_null("Localization")
+	return loc and loc.has_method("trn") ? loc.trn(key) : key
 
 func _bind_volume_sliders() -> void:
 	var mv: HSlider = get_node_or_null("SettingsPanel/MusicVolume")
@@ -111,10 +114,10 @@ func _setup_lang_selector() -> void:
 	ob.clear()
 	ob.add_item("English")
 	ob.add_item("Русский")
-	ob.select(1) # default ru
+	# auto-detect
 	var loc := get_node_or_null("Localization")
-	if loc:
-		loc.set_language("ru")
+	var default_ru := loc and loc.language == "ru"
+	ob.select(default_ru ? 1 : 0)
 	ob.item_selected.connect(func(idx):
 		if loc:
 			loc.set_language(idx == 0 ? "en" : "ru")
@@ -134,17 +137,16 @@ func _update_daily_reward_button() -> void:
 	var today := Time.get_date_string_from_system()
 	if saver and saver.has_method("can_claim_daily_reward") and not saver.can_claim_daily_reward(today):
 		btn.disabled = true
-		btn.text = "Reward claimed"
+		btn.text = _tr("reward_claimed")
 	else:
 		btn.disabled = false
-		btn.text = "Daily Reward"
+		btn.text = _tr("daily_reward")
 
 func _on_daily_reward() -> void:
 	var saver := get_node_or_null("/root/SaveManager")
 	var today := Time.get_date_string_from_system()
 	if saver and saver.has_method("can_claim_daily_reward") and saver.can_claim_daily_reward(today):
 		saver.claim_daily_reward(today)
-		# reload values
 		saver.load_data()
 		if saver.has_method("get_boosters"):
 			var b = saver.get_boosters()
@@ -155,23 +157,19 @@ func _on_daily_reward() -> void:
 		_update_daily_reward_button()
 
 func _localize_ui() -> void:
-	var loc := get_node_or_null("Localization")
-	if loc and loc.has_method("trn"):
-		if score_text: score_text.text = loc.trn("score") + ": 0"
-		if moves_text: moves_text.text = loc.trn("moves") + ": " + (endless_mode ? "∞" : str(moves))
-		if pause_button: pause_button.text = loc.trn("pause")
-		if resume_button: resume_button.text = loc.trn("resume")
-		var sl: Label = get_node_or_null("SettingsPanel/SettingsLabel")
-		if sl: sl.text = loc.trn("settings")
-		var mc: CheckBox = get_node_or_null("SettingsPanel/MusicCheck")
-		if mc: mc.text = loc.trn("music")
-		var mv_label: Label = null # could be added if needed
-		var sc: CheckBox = get_node_or_null("SettingsPanel/SfxCheck")
-		if sc: sc.text = loc.trn("sfx")
-		var best_label: RichTextLabel = get_node_or_null("BestScoreText")
-		if best_label: best_label.text = (loc.trn("score") == "Очки" ? "Рекорд" : "Best") + ": " + str(best_score)
-		var dr: Button = get_node_or_null("SettingsPanel/DailyReward")
-		if dr: dr.text = "Daily Reward"  # could translate as needed
+	if score_text: score_text.text = _tr("score") + ": 0"
+	if moves_text: moves_text.text = _tr("moves") + ": " + (endless_mode ? "∞" : str(moves))
+	if pause_button: pause_button.text = _tr("pause")
+	if resume_button: resume_button.text = _tr("resume")
+	var sl: Label = get_node_or_null("SettingsPanel/SettingsLabel")
+	if sl: sl.text = _tr("settings")
+	var mc: CheckBox = get_node_or_null("SettingsPanel/MusicCheck")
+	if mc: mc.text = _tr("music")
+	var sc: CheckBox = get_node_or_null("SettingsPanel/SfxCheck")
+	if sc: sc.text = _tr("sfx")
+	var best_label: RichTextLabel = get_node_or_null("BestScoreText")
+	if best_label: best_label.text = _tr("best") + ": " + str(best_score)
+	_update_daily_reward_button()
 
 func _save_boosters_now() -> void:
 	var saver := get_node_or_null("/root/SaveManager")
@@ -197,7 +195,6 @@ func _update_booster_enabled() -> void:
 func update_score(score):
 	if score_text:
 		score_text.text = "Score: " + str(score)
-	# update best score live
 	var saver := get_node_or_null("/root/SaveManager")
 	if saver and saver.has_method("save_score"):
 		saver.save_score(score)
@@ -205,7 +202,7 @@ func update_score(score):
 			best_score = int(saver.get_best_score())
 			var best_label: RichTextLabel = get_node_or_null("BestScoreText")
 			if best_label:
-				best_label.text = "Best: " + str(best_score)
+				best_label.text = _tr("best") + ": " + str(best_score)
 	if not endless_mode and score >= goal_score:
 		print("Goal reached!")
 		end_game(true)  # Победа
