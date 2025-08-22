@@ -45,15 +45,23 @@ func _ready():
 		booster2_button = get_node_or_null("BoosterShuffle")
 	if booster3_button == null:
 		booster3_button = get_node_or_null("BoosterExtra")
+	if pause_button == null:
+		pause_button = get_node_or_null("PauseButton")
+	if resume_button == null:
+		resume_button = get_node_or_null("ResumeButton")
+	if pause_panel == null:
+		pause_panel = get_node_or_null("SettingsPanel")
+	if audio_manager == null:
+		audio_manager = get_node_or_null("AudioManager")
 	
 	if play_button:
 		play_button.pressed.connect(load_game_scene)
 	if pause_button:
 		pause_button.pressed.connect(pause_game)
-		pause_button.visible = false  # Скрываем до загрузки игры
+		pause_button.visible = true
 	if resume_button:
 		resume_button.pressed.connect(resume_game)
-		resume_button.visible = false  # Скрываем до паузы
+		resume_button.visible = false
 	if booster1_button:
 		booster1_button.pressed.connect(_on_bomb_pressed)
 	if booster2_button:
@@ -68,6 +76,30 @@ func _ready():
 		pause_panel.visible = false
 	_update_booster_labels()
 	_update_booster_enabled()
+	_localize_ui()
+	_bind_settings_controls()
+
+func _bind_settings_controls() -> void:
+	var mcheck: CheckBox = get_node_or_null("SettingsPanel/MusicCheck")
+	var scheck: CheckBox = get_node_or_null("SettingsPanel/SfxCheck")
+	if mcheck and audio_manager and audio_manager.has_method("set_music_enabled"):
+		mcheck.toggled.connect(func(pressed): audio_manager.set_music_enabled(pressed))
+	if scheck and audio_manager and audio_manager.has_method("set_sfx_enabled"):
+		scheck.toggled.connect(func(pressed): audio_manager.set_sfx_enabled(pressed))
+
+func _localize_ui() -> void:
+	var loc := get_node_or_null("Localization")
+	if loc and loc.has_method("trn"):
+		if score_text: score_text.text = loc.trn("score") + ": 0"
+		if moves_text: moves_text.text = loc.trn("moves") + ": " + (endless_mode ? "∞" : str(moves))
+		if pause_button: pause_button.text = loc.trn("pause")
+		if resume_button: resume_button.text = loc.trn("resume")
+		var sl: Label = get_node_or_null("SettingsPanel/SettingsLabel")
+		if sl: sl.text = loc.trn("settings")
+		var mc: CheckBox = get_node_or_null("SettingsPanel/MusicCheck")
+		if mc: mc.text = loc.trn("music")
+		var sc: CheckBox = get_node_or_null("SettingsPanel/SfxCheck")
+		if sc: sc.text = loc.trn("sfx")
 
 func _save_boosters_now() -> void:
 	var saver := get_node_or_null("/root/SaveManager")
@@ -122,28 +154,28 @@ func load_game_scene():
 		print("Error: GameScene.tscn not found at ", scene_path)
 
 func pause_game():
+	get_tree().paused = true
+	if pause_panel: pause_panel.visible = true
+	if pause_button: pause_button.visible = false
+	if resume_button: resume_button.visible = true
 	if yandex_sdk:
-		get_tree().paused = true
-		if pause_panel: pause_panel.visible = true
-		if pause_button: pause_button.visible = false
-		if resume_button: resume_button.visible = true
 		yandex_sdk.gameplay_api_stop()
-		var tween = create_tween()
-		if pause_panel:
-			tween.tween_property(pause_panel, "modulate:a", 1.0, 0.3)
-		print("Game paused")
+	var tween = create_tween()
+	if pause_panel:
+		tween.tween_property(pause_panel, "modulate:a", 1.0, 0.3)
+	print("Game paused")
 
 func resume_game():
+	get_tree().paused = false
+	if pause_panel: pause_panel.visible = false
+	if pause_button: pause_button.visible = true
+	if resume_button: resume_button.visible = false
 	if yandex_sdk:
-		get_tree().paused = false
-		if pause_panel: pause_panel.visible = false
-		if pause_button: pause_button.visible = true
-		if resume_button: resume_button.visible = false
 		yandex_sdk.gameplay_api_start()
-		var tween = create_tween()
-		if pause_panel:
-			tween.tween_property(pause_panel, "modulate:a", 0.0, 0.3)
-		print("Game resumed")
+	var tween = create_tween()
+	if pause_panel:
+		tween.tween_property(pause_panel, "modulate:a", 0.0, 0.3)
+	print("Game resumed")
 
 func end_game(is_win):
 	if yandex_sdk and score_manager:
@@ -160,8 +192,8 @@ func end_game(is_win):
 		yandex_sdk.gameplay_api_stop()
 
 func use_bomb_booster():
-	if audio_manager:
-		audio_manager.play_match_sfx()
+	if audio_manager and audio_manager.has_method("play_bomb_sfx"):
+		audio_manager.play_bomb_sfx()
 	if bomb_count <= 0:
 		return
 	bomb_count -= 1
@@ -181,8 +213,8 @@ func _on_bomb_pressed():
 	use_bomb_booster()
 
 func use_shuffle_booster():
-	if audio_manager:
-		audio_manager.play_match_sfx()
+	if audio_manager and audio_manager.has_method("play_shuffle_sfx"):
+		audio_manager.play_shuffle_sfx()
 	if shuffle_count <= 0:
 		return
 	shuffle_count -= 1
@@ -198,7 +230,7 @@ func _on_shuffle_pressed():
 	use_shuffle_booster()
 
 func use_extra_move_booster():
-	if audio_manager:
+	if audio_manager and audio_manager.has_method("play_match_sfx"):
 		audio_manager.play_match_sfx()
 	modesafe_set_moves(moves + 5)
 	print("Extra move booster used")

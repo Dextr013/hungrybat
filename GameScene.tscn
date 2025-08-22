@@ -24,13 +24,14 @@ fit_content = true
 
 [node name="MovesText" type="RichTextLabel" parent="UIManager"]
 position = Vector2(0, 24)
-text = "Moves: 30"
+text = "Moves: ∞"
 fit_content = true
 
 [node name="GoalText" type="RichTextLabel" parent="UIManager"]
 position = Vector2(0, 48)
 text = "Goal: 500"
 fit_content = true
+visible = false
 
 [node name="BoosterBomb" type="TextureButton" parent="UIManager"]
 position = Vector2(0, 80)
@@ -55,5 +56,38 @@ texture_normal = ExtResource("6")
 [node name="ExtraCount" type="Label" parent="UIManager"]
 position = Vector2(80, 120)
 text = "+5"
+
+[node name="PauseButton" type="Button" parent="UIManager"]
+position = Vector2(680, 8)
+text = "Pause"
+
+[node name="ResumeButton" type="Button" parent="UIManager"]
+position = Vector2(760, 8)
+text = "Resume"
+visible = false
+
+[node name="SettingsPanel" type="Panel" parent="UIManager"]
+position = Vector2(600, 40)
+visible = false
+
+[node name="SettingsLabel" type="Label" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 8)
+text = "Settings"
+
+[node name="MusicCheck" type="CheckBox" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 36)
+text = "Music"
+pressed = true
+
+[node name="SfxCheck" type="CheckBox" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 60)
+text = "SFX"
+pressed = true
+
+[node name="AudioManager" type="Node" parent="UIManager"]
+script = ExtResource("res://scripts/AudioManager.gd")
+
+[node name="Localization" type="Node" parent="UIManager"]
+script = ExtResource("res://scripts/LocalizationManager.gd")
 
 [editable path="/GameRoot/UIManager"]

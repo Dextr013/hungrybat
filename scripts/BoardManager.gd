@@ -33,6 +33,27 @@ func get_tile_size() -> int:
 func is_busy() -> bool:
 	return _busy
 
+func _get_audio_manager():
+	var uis := get_tree().get_nodes_in_group("ui_manager")
+	if uis.size() > 0 and uis[0].has_variable("audio_manager"):
+		return uis[0].audio_manager
+	return null
+
+func _play_match_sfx_if_available() -> void:
+	var am = _get_audio_manager()
+	if am != null and am.has_method("play_match_sfx"):
+		am.play_match_sfx()
+
+func _play_bomb_sfx_if_available() -> void:
+	var am = _get_audio_manager()
+	if am != null and am.has_method("play_bomb_sfx"):
+		am.play_bomb_sfx()
+
+func _play_shuffle_sfx_if_available() -> void:
+	var am = _get_audio_manager()
+	if am != null and am.has_method("play_shuffle_sfx"):
+		am.play_shuffle_sfx()
+
 func _init_grid() -> void:
 	grid.resize(grid_width)
 	for x in range(grid_width):
@@ -205,13 +226,6 @@ func _expand_clears_with_specials(marked: Dictionary) -> Dictionary:
 	return marked
 
 # Reintroduced helpers with animations and optional SFX
-func _play_match_sfx_if_available() -> void:
-	var uis := get_tree().get_nodes_in_group("ui_manager")
-	if uis.size() > 0 and uis[0].has_variable("audio_manager"):
-		var am = uis[0].audio_manager
-		if am != null and am.has_method("play_match_sfx"):
-			am.play_match_sfx()
-
 func _clear_matches(matched_positions: Array) -> void:
 	_play_match_sfx_if_available()
 	var tween := create_tween()
@@ -271,7 +285,7 @@ func apply_bomb(center: Vector2i, radius: int = 1) -> void:
 	if _busy:
 		return
 	_busy = true
-	_play_match_sfx_if_available()
+	_play_bomb_sfx_if_available()
 	var positions := []
 	for dx in range(-radius, radius + 1):
 		for dy in range(-radius, radius + 1):
@@ -291,6 +305,7 @@ func shuffle_board(max_attempts: int = 20) -> void:
 	if _busy:
 		return
 	_busy = true
+	_play_shuffle_sfx_if_available()
 	# Visual pulse
 	var tween_up := create_tween()
 	for x in range(grid_width):
