@@ -11,9 +11,21 @@ var grid_height: int = 8
 
 var match_finder: Node = null
 
+var _available_types := ["apple", "banana", "orange", "grape"]
+var _score: int = 0
+
 func _ready() -> void:
-	_init_grid()
+	add_to_group("board_manager")
+	randomize()
 	match_finder = get_node_or_null("../MatchFinder")
+	if match_finder == null:
+		match_finder = Node.new()
+		match_finder.set_script(load("res://scripts/MatchFinder.gd"))
+		add_child(match_finder)
+	_init_grid()
+
+func get_tile_size() -> int:
+	return TILE_SIZE
 
 func _init_grid() -> void:
 	grid.resize(grid_width)
@@ -23,8 +35,29 @@ func _init_grid() -> void:
 			var tile_instance: Node2D = tile_scene.instantiate()
 			tile_instance.position = Vector2(x * TILE_SIZE, y * TILE_SIZE)
 			tile_instance.grid_position = Vector2i(x, y)
+			# Assign type avoiding initial matches
+			if tile_instance.has_method("set_type"):
+				(tile_instance as Node).call("set_type", _pick_type_for_initial(x, y))
 			add_child(tile_instance)
 			grid[x].append(tile_instance)
+
+func _pick_type_for_initial(x: int, y: int) -> String:
+	var candidates: Array = _available_types.duplicate()
+	# Avoid creating a horizontal run >= 3
+	if x >= 2:
+		var t1 = grid[x - 1][y]
+		var t2 = grid[x - 2][y]
+		if t1 != null and t2 != null and t1.type == t2.type:
+			candidates.erase(t1.type)
+	# Avoid creating a vertical run >= 3
+	if y >= 2:
+		var u1 = grid[x][y - 1]
+		var u2 = grid[x][y - 2]
+		if u1 != null and u2 != null and u1.type == u2.type:
+			candidates.erase(u1.type)
+	if candidates.is_empty():
+		return _available_types[randi() % _available_types.size()]
+	return candidates[randi() % candidates.size()]
 
 func _swap_in_grid(a: Vector2i, b: Vector2i) -> void:
 	var t1 = grid[a.x][a.y]
@@ -40,7 +73,7 @@ func is_valid_swap(a: Vector2i, b: Vector2i) -> bool:
 	if (abs(a.x - b.x) + abs(a.y - b.y)) != 1:
 		return false
 	_swap_in_grid(a, b)
-	var ok: bool = match_finder.find_matches(grid).size() > 0
+	var ok: bool = match_finder != null and match_finder.find_matches(grid).size() > 0
 	_swap_in_grid(a, b)
 	return ok
 
@@ -49,6 +82,8 @@ func swap_tiles(a: Vector2i, b: Vector2i) -> bool:
 		return false
 	var t1 = grid[a.x][a.y]
 	var t2 = grid[b.x][b.y]
+	if t1 == null or t2 == null:
+		return false
 
 	var tween = create_tween()
 	tween.tween_property(t1, "position", Vector2(b.x * TILE_SIZE, b.y * TILE_SIZE), swap_duration)
@@ -56,7 +91,7 @@ func swap_tiles(a: Vector2i, b: Vector2i) -> bool:
 	await tween.finished
 	_swap_in_grid(a, b)
 
-	var matched: Array = match_finder.find_matches(grid)
+	var matched: Array = match_finder != null ? match_finder.find_matches(grid) : []
 	if matched.is_empty():
 		var tween_back = create_tween()
 		tween_back.tween_property(t1, "position", Vector2(a.x * TILE_SIZE, a.y * TILE_SIZE), swap_duration)
@@ -65,5 +100,64 @@ func swap_tiles(a: Vector2i, b: Vector2i) -> bool:
 		_swap_in_grid(a, b)
 		return false
 
-	# здесь должна быть логика очистки совпавших, сдвига и заполнения новых
+	await _resolve_board_with_cascades()
 	return true
+
+func _resolve_board_with_cascades() -> void:
+	while true:
+		var matched: Array = match_finder != null ? match_finder.find_matches(grid) : []
+		if matched.is_empty():
+			break
+		await _clear_matches(matched)
+		await _apply_gravity()
+		await _refill_board()
+
+func _clear_matches(matched_positions: Array) -> void:
+	# Remove matched tiles and update score
+	for pos in matched_positions:
+		var p: Vector2i = pos
+		var tile = grid[p.x][p.y]
+		if tile != null:
+			tile.queue_free()
+			grid[p.x][p.y] = null
+	_score += matched_positions.size()
+	var ui := get_tree().root.get_node_or_null("UIManager")
+	if ui != null and ui.has_method("update_score"):
+		ui.update_score(_score)
+	# Small delay for clarity if desired
+	await get_tree().create_timer(0.05).timeout
+
+func _apply_gravity() -> void:
+	# For each column, move tiles down to fill nulls
+	for x in range(grid_width):
+		var write_y := grid_height - 1
+		for y in range(grid_height - 1, -1, -1):
+			var tile = grid[x][y]
+			if tile != null:
+				if y != write_y:
+					grid[x][write_y] = tile
+					grid[x][y] = null
+					tile.grid_position = Vector2i(x, write_y)
+					var tween = create_tween()
+					tween.tween_property(tile, "position", Vector2(x * TILE_SIZE, write_y * TILE_SIZE), 0.1)
+					await tween.finished
+				write_y -= 1
+			else:
+				write_y -= 1
+
+func _refill_board() -> void:
+	# Spawn new tiles for empty cells at the top and animate falling into place
+	for x in range(grid_width):
+		for y in range(grid_height):
+			if grid[x][y] == null:
+				var tile_instance: Node2D = tile_scene.instantiate()
+				var spawn_y := -1
+				tile_instance.position = Vector2(x * TILE_SIZE, spawn_y * TILE_SIZE)
+				tile_instance.grid_position = Vector2i(x, y)
+				if tile_instance.has_method("set_type"):
+					(tile_instance as Node).call("set_type", _available_types[randi() % _available_types.size()])
+				add_child(tile_instance)
+				grid[x][y] = tile_instance
+				var tween = create_tween()
+				tween.tween_property(tile_instance, "position", Vector2(x * TILE_SIZE, y * TILE_SIZE), 0.1 + 0.02 * (grid_height - y))
+				await tween.finished

@@ -7,5 +7,5 @@
 script = ExtResource("2_je3b2")
 
 [node name="TileSprite" type="Sprite2D" parent="."]
-position = Vector2(980, 406)
+position = Vector2(0, 0)
 texture = ExtResource("1_j13wd")
