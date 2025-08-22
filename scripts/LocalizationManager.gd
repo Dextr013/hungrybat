@@ -16,6 +16,9 @@ var _strings := {
 		"sfx_vol": "SFX Vol",
 		"daily_reward": "Daily Reward",
 		"reward_claimed": "Reward claimed",
+		"continue_question": "Continue game?",
+		"continue": "Continue",
+		"restart": "Restart",
 	},
 	"ru": {
 		"score": "Очки",
@@ -30,6 +33,9 @@ var _strings := {
 		"sfx_vol": "Громкость звуков",
 		"daily_reward": "Ежедневная награда",
 		"reward_claimed": "Награда получена",
+		"continue_question": "Продолжить игру?",
+		"continue": "Продолжить",
+		"restart": "Заново",
 	}
 }
 

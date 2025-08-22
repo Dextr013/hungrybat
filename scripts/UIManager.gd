@@ -23,18 +23,21 @@ var moves = INITIAL_MOVES
 var goal_score = 500  # Пример цели
 var endless_mode: bool = true
 
+var _saver: Node = null
+
 func _ready():
 	add_to_group("ui_manager")
-	# Load boosters/best score if SaveManager exists
-	var saver := get_node_or_null("/root/SaveManager")
-	if saver and saver.has_method("load_data"):
-		saver.load_data()
-		if saver.has_method("get_boosters"):
-			var b = saver.get_boosters()
+	_saver = get_node_or_null("/root/SaveManager")
+	# Load boosters/best score and settings
+	if _saver and _saver.has_method("load_data"):
+		_saver.load_data()
+		if _saver.has_method("get_boosters"):
+			var b = _saver.get_boosters()
 			if b.has("bomb"): bomb_count = int(b.bomb)
 			if b.has("shuffle"): shuffle_count = int(b.shuffle)
-		if saver.has_method("get_best_score"):
-			best_score = int(saver.get_best_score())
+		if _saver.has_method("get_best_score"):
+			best_score = int(_saver.get_best_score())
+		_apply_settings_from_save()
 	# Auto-wire if present
 	if score_text == null:
 		score_text = get_node_or_null("ScoreText")
@@ -90,6 +93,37 @@ func _ready():
 	_setup_daily_reward()
 	_bind_volume_sliders()
 
+func _apply_settings_from_save() -> void:
+	if _saver == null: return
+	var s = _saver.get_settings() if _saver.has_method("get_settings") else {}
+	var loc := get_node_or_null("Localization")
+	if s.has("language") and loc:
+		loc.set_language(String(s.language))
+	if audio_manager:
+		if s.has("music_enabled") and audio_manager.has_method("set_music_enabled"):
+			audio_manager.set_music_enabled(bool(s.music_enabled))
+		if s.has("sfx_enabled") and audio_manager.has_method("set_sfx_enabled"):
+			audio_manager.set_sfx_enabled(bool(s.sfx_enabled))
+		if s.has("music_volume") and audio_manager.has_method("set_music_volume"):
+			audio_manager.set_music_volume(float(s.music_volume))
+		if s.has("sfx_volume") and audio_manager.has_method("set_sfx_volume"):
+			audio_manager.set_sfx_volume(float(s.sfx_volume))
+
+func _save_settings_now() -> void:
+	if _saver and _saver.has_method("save_settings") and audio_manager:
+		var loc := get_node_or_null("Localization")
+		var mcheck: CheckBox = get_node_or_null("SettingsPanel/MusicCheck")
+		var scheck: CheckBox = get_node_or_null("SettingsPanel/SfxCheck")
+		var mv: HSlider = get_node_or_null("SettingsPanel/MusicVolume")
+		var sv: HSlider = get_node_or_null("SettingsPanel/SfxVolume")
+		_saver.save_settings({
+			"language": loc.language if loc else "en",
+			"music_enabled": mcheck.button_pressed if mcheck else true,
+			"sfx_enabled": scheck.button_pressed if scheck else true,
+			"music_volume": mv.value if mv else 1.0,
+			"sfx_volume": sv.value if sv else 1.0,
+		})
+
 func _tr(key: String) -> String:
 	var loc := get_node_or_null("Localization")
 	return loc and loc.has_method("trn") ? loc.trn(key) : key
@@ -98,17 +132,17 @@ func _bind_volume_sliders() -> void:
 	var mv: HSlider = get_node_or_null("SettingsPanel/MusicVolume")
 	var sv: HSlider = get_node_or_null("SettingsPanel/SfxVolume")
 	if mv and audio_manager and audio_manager.has_method("set_music_volume"):
-		mv.value_changed.connect(func(v): audio_manager.set_music_volume(v))
+		mv.value_changed.connect(func(v): audio_manager.set_music_volume(v); _save_settings_now())
 	if sv and audio_manager and audio_manager.has_method("set_sfx_volume"):
-		sv.value_changed.connect(func(v): audio_manager.set_sfx_volume(v))
+		sv.value_changed.connect(func(v): audio_manager.set_sfx_volume(v); _save_settings_now())
 
 func _bind_settings_controls() -> void:
 	var mcheck: CheckBox = get_node_or_null("SettingsPanel/MusicCheck")
 	var scheck: CheckBox = get_node_or_null("SettingsPanel/SfxCheck")
 	if mcheck and audio_manager and audio_manager.has_method("set_music_enabled"):
-		mcheck.toggled.connect(func(pressed): audio_manager.set_music_enabled(pressed))
+		mcheck.toggled.connect(func(pressed): audio_manager.set_music_enabled(pressed); _save_settings_now())
 	if scheck and audio_manager and audio_manager.has_method("set_sfx_enabled"):
-		scheck.toggled.connect(func(pressed): audio_manager.set_sfx_enabled(pressed))
+		scheck.toggled.connect(func(pressed): audio_manager.set_sfx_enabled(pressed); _save_settings_now())
 
 func _setup_lang_selector() -> void:
 	var ob: OptionButton = get_node_or_null("SettingsPanel/LangSelect")
@@ -116,7 +150,6 @@ func _setup_lang_selector() -> void:
 	ob.clear()
 	ob.add_item("English")
 	ob.add_item("Русский")
-	# auto-detect
 	var loc := get_node_or_null("Localization")
 	var default_ru := loc and loc.language == "ru"
 	ob.select(default_ru ? 1 : 0)
@@ -124,6 +157,7 @@ func _setup_lang_selector() -> void:
 		if loc:
 			loc.set_language(idx == 0 ? "en" : "ru")
 		_localize_ui()
+		_save_settings_now()
 	)
 
 func _setup_daily_reward() -> void:
@@ -250,6 +284,16 @@ func resume_game():
 	if pause_panel: pause_panel.visible = false
 	if pause_button: pause_button.visible = true
 	if resume_button: resume_button.visible = false
+	# Show ad on resume
+	if audio_manager and audio_manager.has_method("pause_music"):
+		audio_manager.pause_music()
+	if yandex_sdk and yandex_sdk.has_method("show_ad"):
+		var done := false
+		yandex_sdk.show_ad(func(_): done = true)
+		while not done:
+			await get_tree().process_frame
+	if audio_manager and audio_manager.has_method("resume_music"):
+		audio_manager.resume_music()
 	if yandex_sdk:
 		yandex_sdk.gameplay_api_start()
 	var tween = create_tween()
@@ -290,16 +334,19 @@ func _handle_defeat_with_ad() -> void:
 	await _prompt_continue_or_restart()
 
 func _prompt_continue_or_restart() -> void:
-	var dialog := AcceptDialog.new()
-	dialog.dialog_text = "Continue game?"
-	dialog.ok_button_text = "Continue"
-	dialog.add_cancel_button("Restart")
+	var dialog := ConfirmationDialog.new()
+	dialog.dialog_text = _tr("continue_question") if has_method("_tr") else "Continue game?"
+	dialog.ok_button_text = _tr("continue") if has_method("_tr") else "Continue"
+	dialog.get_cancel_button().text = _tr("restart") if has_method("_tr") else "Restart"
 	get_tree().root.add_child(dialog)
 	dialog.popup_centered()
-	await dialog.confirmed
-	# If confirmed: grant extra moves and resume
-	if moves_text:
-		modesafe_set_moves(moves + 5)
+	var confirmed := await dialog.confirmed
+	if confirmed:
+		if moves_text:
+			modesafe_set_moves(moves + 5)
+		return
+	# restart on cancel
+	get_tree().reload_current_scene()
 	return
 
 func use_bomb_booster():

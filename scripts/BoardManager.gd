@@ -67,6 +67,11 @@ func _spawn_fx(scene: PackedScene, world_pos: Vector2) -> void:
 			fx.restart()
 		elif fx.has_variable("emitting"):
 			fx.emitting = true
+		# Auto-free after short delay
+		var t := get_tree().create_timer(1.2)
+		await t.timeout
+		if is_instance_valid(fx):
+			fx.queue_free()
 
 func _init_grid() -> void:
 	grid.resize(grid_width)
