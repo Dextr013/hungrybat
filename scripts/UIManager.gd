@@ -56,6 +56,8 @@ func _ready():
 		pause_panel = get_node_or_null("SettingsPanel")
 	if audio_manager == null:
 		audio_manager = get_node_or_null("AudioManager")
+	if yandex_sdk == null:
+		yandex_sdk = get_node_or_null("/root/YandexSDKManager")
 	
 	if play_button:
 		play_button.pressed.connect(load_game_scene)
@@ -264,10 +266,41 @@ func end_game(is_win):
 		print("Win!")
 	else:
 		print("Lose!")
+		# Show ad and offer continue or restart
+		await _handle_defeat_with_ad()
+		return
 	if FileAccess.file_exists("res://MainMenu.tscn") and not endless_mode:
 		get_tree().change_scene_to_file("res://MainMenu.tscn")
 	if yandex_sdk:
 		yandex_sdk.gameplay_api_stop()
+
+func _handle_defeat_with_ad() -> void:
+	# Pause audio while ad
+	if audio_manager and audio_manager.has_method("pause_music"):
+		audio_manager.pause_music()
+	if yandex_sdk and yandex_sdk.has_method("show_ad"):
+		var done := false
+		yandex_sdk.show_ad(func(_): done = true)
+		while not done:
+			await get_tree().process_frame
+	# Resume audio after ad
+	if audio_manager and audio_manager.has_method("resume_music"):
+		audio_manager.resume_music()
+	# Offer continue or restart
+	await _prompt_continue_or_restart()
+
+func _prompt_continue_or_restart() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.dialog_text = "Continue game?"
+	dialog.ok_button_text = "Continue"
+	dialog.add_cancel_button("Restart")
+	get_tree().root.add_child(dialog)
+	dialog.popup_centered()
+	await dialog.confirmed
+	# If confirmed: grant extra moves and resume
+	if moves_text:
+		modesafe_set_moves(moves + 5)
+	return
 
 func use_bomb_booster():
 	if audio_manager and audio_manager.has_method("play_bomb_sfx"):

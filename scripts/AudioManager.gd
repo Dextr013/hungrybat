@@ -15,6 +15,12 @@ func _ready():
 	if bg_music and music_enabled:
 		bg_music.play()
 
+func _notification(what):
+	if what == MainLoop.NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_pause_music_stream()
+	elif what == MainLoop.NOTIFICATION_APPLICATION_FOCUS_IN:
+		_resume_music_stream()
+
 func set_music_enabled(enabled: bool) -> void:
 	music_enabled = enabled
 	if bg_music:
@@ -43,6 +49,20 @@ func _apply_volumes() -> void:
 		bomb_sfx.volume_db = linear_to_db(sfx_volume)
 	if shuffle_sfx:
 		shuffle_sfx.volume_db = linear_to_db(sfx_volume)
+
+func pause_music() -> void:
+	_pause_music_stream()
+
+func resume_music() -> void:
+	_resume_music_stream()
+
+func _pause_music_stream() -> void:
+	if bg_music:
+		bg_music.stream_paused = true
+
+func _resume_music_stream() -> void:
+	if bg_music and music_enabled:
+		bg_music.stream_paused = false
 
 func play_match_sfx():
 	if sfx_enabled and match_sfx:
