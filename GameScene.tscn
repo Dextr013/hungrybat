@@ -1,8 +1,11 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/BoardManager.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/TileInputHandler.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/UIManager.gd" id="3"]
+[ext_resource type="Texture2D" path="res://PowerUps/bomb_icon.png" id="4"]
+[ext_resource type="Texture2D" path="res://PowerUps/icon_lightning.png" id="5"]
+[ext_resource type="Texture2D" path="res://PowerUps/icon_potion.png" id="6"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -28,5 +31,17 @@ fit_content = true
 position = Vector2(0, 48)
 text = "Goal: 500"
 fit_content = true
+
+[node name="BoosterBomb" type="TextureButton" parent="UIManager"]
+position = Vector2(0, 80)
+texture_normal = ExtResource("4")
+
+[node name="BoosterShuffle" type="TextureButton" parent="UIManager"]
+position = Vector2(40, 80)
+texture_normal = ExtResource("5")
+
+[node name="BoosterExtra" type="TextureButton" parent="UIManager"]
+position = Vector2(80, 80)
+texture_normal = ExtResource("6")
 
 [editable path="/GameRoot/UIManager"]

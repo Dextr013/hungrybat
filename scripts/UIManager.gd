@@ -20,6 +20,20 @@ var goal_score = 500  # Пример цели
 
 func _ready():
 	add_to_group("ui_manager")
+	# Auto-wire if present
+	if score_text == null:
+		score_text = get_node_or_null("ScoreText")
+	if moves_text == null:
+		moves_text = get_node_or_null("MovesText")
+	if goal_text == null:
+		goal_text = get_node_or_null("GoalText")
+	if booster1_button == null:
+		booster1_button = get_node_or_null("BoosterBomb")
+	if booster2_button == null:
+		booster2_button = get_node_or_null("BoosterShuffle")
+	if booster3_button == null:
+		booster3_button = get_node_or_null("BoosterExtra")
+	
 	if play_button:
 		play_button.pressed.connect(load_game_scene)
 	if pause_button:
@@ -29,9 +43,9 @@ func _ready():
 		resume_button.pressed.connect(resume_game)
 		resume_button.visible = false  # Скрываем до паузы
 	if booster1_button:
-		booster1_button.pressed.connect(use_bomb_booster)
+		booster1_button.pressed.connect(_on_bomb_pressed)
 	if booster2_button:
-		booster2_button.pressed.connect(use_shuffle_booster)
+		booster2_button.pressed.connect(_on_shuffle_pressed)
 	if booster3_button:
 		booster3_button.pressed.connect(use_extra_move_booster)
 	if moves_text:
@@ -50,10 +64,14 @@ func update_score(score):
 
 func decrement_moves():
 	if moves_text:
-		moves -= 1
-		moves_text.text = "Moves: " + str(moves)
+		modesafe_set_moves(moves - 1)
 		if moves <= 0:
 			end_game(false)  # Поражение
+
+func modesafe_set_moves(new_moves: int) -> void:
+	moves = new_moves
+	if moves_text:
+		moves_text.text = "Moves: " + str(moves)
 
 func load_game_scene():
 	print("Loading GameScene...")
@@ -108,18 +126,30 @@ func use_bomb_booster():
 	if audio_manager:
 		audio_manager.play_match_sfx()
 	print("Bomb booster used")
-	# Логика: Удалить 3x3 тайлы
+	# Toggle bomb targeting via input handler
+	var boards := get_tree().get_nodes_in_group("board_manager")
+	if boards.size() == 0:
+		return
+	var handlers := boards[0].get_tree().get_nodes_in_group("input_handler")
+	if handlers.size() > 0 and handlers[0].has_method("enable_bomb_mode"):
+		handlers[0].enable_bomb_mode(true)
+
+func _on_bomb_pressed():
+	use_bomb_booster()
 
 func use_shuffle_booster():
 	if audio_manager:
 		audio_manager.play_match_sfx()
 	print("Shuffle booster used")
-	# Логика: Перемешать доску
+	var boards := get_tree().get_nodes_in_group("board_manager")
+	if boards.size() > 0 and boards[0].has_method("shuffle_board"):
+		boards[0].shuffle_board()
+
+func _on_shuffle_pressed():
+	use_shuffle_booster()
 
 func use_extra_move_booster():
 	if audio_manager:
 		audio_manager.play_match_sfx()
-	moves += 5
-	if moves_text:
-		moves_text.text = "Moves: " + str(moves)
+	modesafe_set_moves(moves + 5)
 	print("Extra move booster used")

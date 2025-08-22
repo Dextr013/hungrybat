@@ -161,3 +161,39 @@ func _refill_board() -> void:
 				var tween = create_tween()
 				tween.tween_property(tile_instance, "position", Vector2(x * TILE_SIZE, y * TILE_SIZE), 0.1 + 0.02 * (grid_height - y))
 				await tween.finished
+
+func apply_bomb(center: Vector2i, radius: int = 1) -> void:
+	var positions := []
+	for dx in range(-radius, radius + 1):
+		for dy in range(-radius, radius + 1):
+			var px := center.x + dx
+			var py := center.y + dy
+			if px >= 0 and px < grid_width and py >= 0 and py < grid_height:
+				positions.append(Vector2i(px, py))
+	await _clear_matches(positions)
+	await _apply_gravity()
+	await _refill_board()
+	await _resolve_board_with_cascades()
+
+func shuffle_board(max_attempts: int = 20) -> void:
+	var tiles := []
+	for x in range(grid_width):
+		for y in range(grid_height):
+			if grid[x][y] != null:
+				tiles.append(grid[x][y].type)
+	if tiles.is_empty():
+		return
+	var attempt := 0
+	while attempt < max_attempts:
+		attempt += 1
+		tiles.shuffle()
+		var idx := 0
+		for x in range(grid_width):
+			for y in range(grid_height):
+				if grid[x][y] != null:
+					grid[x][y].set_type(tiles[idx])
+					idx += 1
+		# If no immediate matches after shuffle, accept
+		var m := match_finder != null ? match_finder.find_matches(grid) : []
+		if m.is_empty():
+			break
