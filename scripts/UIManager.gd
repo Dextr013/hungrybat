@@ -77,6 +77,7 @@ func _ready():
 		goal_text.visible = not endless_mode
 	var best_label: RichTextLabel = get_node_or_null("BestScoreText")
 	if best_label:
+		best_score = best_score
 		best_label.text = "Best: " + str(best_score)
 	if pause_panel:
 		pause_panel.visible = false
@@ -86,6 +87,15 @@ func _ready():
 	_bind_settings_controls()
 	_setup_lang_selector()
 	_setup_daily_reward()
+	_bind_volume_sliders()
+
+func _bind_volume_sliders() -> void:
+	var mv: HSlider = get_node_or_null("SettingsPanel/MusicVolume")
+	var sv: HSlider = get_node_or_null("SettingsPanel/SfxVolume")
+	if mv and audio_manager and audio_manager.has_method("set_music_volume"):
+		mv.value_changed.connect(func(v): audio_manager.set_music_volume(v))
+	if sv and audio_manager and audio_manager.has_method("set_sfx_volume"):
+		sv.value_changed.connect(func(v): audio_manager.set_sfx_volume(v))
 
 func _bind_settings_controls() -> void:
 	var mcheck: CheckBox = get_node_or_null("SettingsPanel/MusicCheck")
@@ -155,8 +165,13 @@ func _localize_ui() -> void:
 		if sl: sl.text = loc.trn("settings")
 		var mc: CheckBox = get_node_or_null("SettingsPanel/MusicCheck")
 		if mc: mc.text = loc.trn("music")
+		var mv_label: Label = null # could be added if needed
 		var sc: CheckBox = get_node_or_null("SettingsPanel/SfxCheck")
 		if sc: sc.text = loc.trn("sfx")
+		var best_label: RichTextLabel = get_node_or_null("BestScoreText")
+		if best_label: best_label.text = (loc.trn("score") == "Очки" ? "Рекорд" : "Best") + ": " + str(best_score)
+		var dr: Button = get_node_or_null("SettingsPanel/DailyReward")
+		if dr: dr.text = "Daily Reward"  # could translate as needed
 
 func _save_boosters_now() -> void:
 	var saver := get_node_or_null("/root/SaveManager")

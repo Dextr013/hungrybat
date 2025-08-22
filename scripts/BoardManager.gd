@@ -2,6 +2,8 @@ extends Node2D
 
 @export var tile_scene: PackedScene = preload("res://Tile.tscn")
 @export var swap_duration: float = 0.2
+@export var match_fx_scene: PackedScene = preload("res://effects/MatchParticles.tscn")
+@export var bomb_fx_scene: PackedScene = preload("res://effects/BombParticles.tscn")
 
 const TILE_SIZE: int = 64
 
@@ -53,6 +55,18 @@ func _play_shuffle_sfx_if_available() -> void:
 	var am = _get_audio_manager()
 	if am != null and am.has_method("play_shuffle_sfx"):
 		am.play_shuffle_sfx()
+
+func _spawn_fx(scene: PackedScene, world_pos: Vector2) -> void:
+	if scene == null:
+		return
+	var fx = scene.instantiate()
+	if fx is Node2D:
+		fx.position = world_pos
+		add_child(fx)
+		if fx.has_method("restart"):
+			fx.restart()
+		elif fx.has_variable("emitting"):
+			fx.emitting = true
 
 func _init_grid() -> void:
 	grid.resize(grid_width)
@@ -232,9 +246,14 @@ func _clear_matches(matched_positions: Array) -> void:
 	for pos in matched_positions:
 		var p: Vector2i = pos
 		var tile = grid[p.x][p.y]
+		var fx_pos := Vector2(p.x * TILE_SIZE, p.y * TILE_SIZE)
 		if tile != null:
+			fx_pos = tile.position
+			# Animate
 			tween.parallel().tween_property(tile, "scale", Vector2(0.0, 0.0), 0.15)
 			tween.parallel().tween_property(tile, "modulate:a", 0.0, 0.15)
+		# Spawn FX
+		_spawn_fx(match_fx_scene, fx_pos)
 	await tween.finished
 	for pos2 in matched_positions:
 		var p2: Vector2i = pos2
@@ -286,6 +305,8 @@ func apply_bomb(center: Vector2i, radius: int = 1) -> void:
 		return
 	_busy = true
 	_play_bomb_sfx_if_available()
+	# FX at center
+	_spawn_fx(bomb_fx_scene, Vector2(center.x * TILE_SIZE, center.y * TILE_SIZE))
 	var positions := []
 	for dx in range(-radius, radius + 1):
 		for dy in range(-radius, radius + 1):

@@ -86,10 +86,24 @@ position = Vector2(8, 36)
 text = "Music"
 pressed = true
 
+[node name="MusicVolume" type="HSlider" parent="UIManager/SettingsPanel"]
+position = Vector2(120, 36)
+min_value = 0.0
+max_value = 1.0
+step = 0.01
+value = 1.0
+
 [node name="SfxCheck" type="CheckBox" parent="UIManager/SettingsPanel"]
 position = Vector2(8, 60)
 text = "SFX"
 pressed = true
+
+[node name="SfxVolume" type="HSlider" parent="UIManager/SettingsPanel"]
+position = Vector2(120, 60)
+min_value = 0.0
+max_value = 1.0
+step = 0.01
+value = 1.0
 
 [node name="LangSelect" type="OptionButton" parent="UIManager/SettingsPanel"]
 position = Vector2(8, 84)
