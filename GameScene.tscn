@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/BoardManager.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/TileInputHandler.gd" id="2"]
@@ -6,6 +6,8 @@
 [ext_resource type="Texture2D" path="res://PowerUps/bomb_icon.png" id="4"]
 [ext_resource type="Texture2D" path="res://PowerUps/icon_lightning.png" id="5"]
 [ext_resource type="Texture2D" path="res://PowerUps/icon_potion.png" id="6"]
+[ext_resource type="Script" path="res://scripts/AudioManager.gd" id="7"]
+[ext_resource type="Script" path="res://scripts/LocalizationManager.gd" id="8"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -20,6 +22,11 @@ script = ExtResource("3")
 
 [node name="ScoreText" type="RichTextLabel" parent="UIManager"]
 text = "Score: 0"
+fit_content = true
+
+[node name="BestScoreText" type="RichTextLabel" parent="UIManager"]
+position = Vector2(0, 12)
+text = "Best: 0"
 fit_content = true
 
 [node name="MovesText" type="RichTextLabel" parent="UIManager"]
@@ -84,10 +91,18 @@ position = Vector2(8, 60)
 text = "SFX"
 pressed = true
 
+[node name="LangSelect" type="OptionButton" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 84)
+size_flags_horizontal = 3
+
+[node name="DailyReward" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 112)
+text = "Daily Reward"
+
 [node name="AudioManager" type="Node" parent="UIManager"]
-script = ExtResource("res://scripts/AudioManager.gd")
+script = ExtResource("7")
 
 [node name="Localization" type="Node" parent="UIManager"]
-script = ExtResource("res://scripts/LocalizationManager.gd")
+script = ExtResource("8")
 
 [editable path="/GameRoot/UIManager"]

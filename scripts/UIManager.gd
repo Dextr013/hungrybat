@@ -16,6 +16,7 @@ extends CanvasLayer
 
 var bomb_count := 3
 var shuffle_count := 3
+var best_score := 0
 
 const INITIAL_MOVES = 30
 var moves = INITIAL_MOVES
@@ -24,7 +25,7 @@ var endless_mode: bool = true
 
 func _ready():
 	add_to_group("ui_manager")
-	# Load boosters if SaveManager exists
+	# Load boosters/best score if SaveManager exists
 	var saver := get_node_or_null("/root/SaveManager")
 	if saver and saver.has_method("load_data"):
 		saver.load_data()
@@ -32,6 +33,8 @@ func _ready():
 			var b = saver.get_boosters()
 			if b.has("bomb"): bomb_count = int(b.bomb)
 			if b.has("shuffle"): shuffle_count = int(b.shuffle)
+		if saver.has_method("get_best_score"):
+			best_score = int(saver.get_best_score())
 	# Auto-wire if present
 	if score_text == null:
 		score_text = get_node_or_null("ScoreText")
@@ -72,12 +75,17 @@ func _ready():
 		moves_text.text = endless_mode ? "Moves: ∞" : "Moves: " + str(moves)
 	if goal_text:
 		goal_text.visible = not endless_mode
+	var best_label: RichTextLabel = get_node_or_null("BestScoreText")
+	if best_label:
+		best_label.text = "Best: " + str(best_score)
 	if pause_panel:
 		pause_panel.visible = false
 	_update_booster_labels()
 	_update_booster_enabled()
 	_localize_ui()
 	_bind_settings_controls()
+	_setup_lang_selector()
+	_setup_daily_reward()
 
 func _bind_settings_controls() -> void:
 	var mcheck: CheckBox = get_node_or_null("SettingsPanel/MusicCheck")
@@ -86,6 +94,55 @@ func _bind_settings_controls() -> void:
 		mcheck.toggled.connect(func(pressed): audio_manager.set_music_enabled(pressed))
 	if scheck and audio_manager and audio_manager.has_method("set_sfx_enabled"):
 		scheck.toggled.connect(func(pressed): audio_manager.set_sfx_enabled(pressed))
+
+func _setup_lang_selector() -> void:
+	var ob: OptionButton = get_node_or_null("SettingsPanel/LangSelect")
+	if ob == null: return
+	ob.clear()
+	ob.add_item("English")
+	ob.add_item("Русский")
+	ob.select(1) # default ru
+	var loc := get_node_or_null("Localization")
+	if loc:
+		loc.set_language("ru")
+	ob.item_selected.connect(func(idx):
+		if loc:
+			loc.set_language(idx == 0 ? "en" : "ru")
+		_localize_ui()
+	)
+
+func _setup_daily_reward() -> void:
+	var btn: Button = get_node_or_null("SettingsPanel/DailyReward")
+	if btn == null: return
+	btn.pressed.connect(_on_daily_reward)
+	_update_daily_reward_button()
+
+func _update_daily_reward_button() -> void:
+	var btn: Button = get_node_or_null("SettingsPanel/DailyReward")
+	if btn == null: return
+	var saver := get_node_or_null("/root/SaveManager")
+	var today := Time.get_date_string_from_system()
+	if saver and saver.has_method("can_claim_daily_reward") and not saver.can_claim_daily_reward(today):
+		btn.disabled = true
+		btn.text = "Reward claimed"
+	else:
+		btn.disabled = false
+		btn.text = "Daily Reward"
+
+func _on_daily_reward() -> void:
+	var saver := get_node_or_null("/root/SaveManager")
+	var today := Time.get_date_string_from_system()
+	if saver and saver.has_method("can_claim_daily_reward") and saver.can_claim_daily_reward(today):
+		saver.claim_daily_reward(today)
+		# reload values
+		saver.load_data()
+		if saver.has_method("get_boosters"):
+			var b = saver.get_boosters()
+			if b.has("bomb"): bomb_count = int(b.bomb)
+			if b.has("shuffle"): shuffle_count = int(b.shuffle)
+		_update_booster_labels()
+		_update_booster_enabled()
+		_update_daily_reward_button()
 
 func _localize_ui() -> void:
 	var loc := get_node_or_null("Localization")
@@ -125,6 +182,15 @@ func _update_booster_enabled() -> void:
 func update_score(score):
 	if score_text:
 		score_text.text = "Score: " + str(score)
+	# update best score live
+	var saver := get_node_or_null("/root/SaveManager")
+	if saver and saver.has_method("save_score"):
+		saver.save_score(score)
+		if saver.has_method("get_best_score"):
+			best_score = int(saver.get_best_score())
+			var best_label: RichTextLabel = get_node_or_null("BestScoreText")
+			if best_label:
+				best_label.text = "Best: " + str(best_score)
 	if not endless_mode and score >= goal_score:
 		print("Goal reached!")
 		end_game(true)  # Победа
