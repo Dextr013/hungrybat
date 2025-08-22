@@ -107,134 +107,84 @@ func swap_tiles(a: Vector2i, b: Vector2i) -> bool:
 		_busy = false
 		return false
 
-	await _resolve_board_with_cascades()
+	await _resolve_board_with_cascades_create_specials()
 	_busy = false
 	return true
 
-func _resolve_board_with_cascades() -> void:
+func _resolve_board_with_cascades_create_specials() -> void:
 	while true:
-		var matched: Array = match_finder != null ? match_finder.find_matches(grid) : []
-		if matched.is_empty():
+		var seqs := match_finder != null && match_finder.has_method("find_sequences") ? match_finder.find_sequences(grid) : []
+		if seqs.is_empty():
 			break
-		await _clear_matches(matched)
+		# Create specials for 4/5+ sequences, prefer placing at last moved tile if involved
+		await _apply_specials_then_clear(seqs)
 		await _apply_gravity()
 		await _refill_board()
 
-func _clear_matches(matched_positions: Array) -> void:
-	# Animate removal, then free and update score
-	var tween := create_tween()
-	for pos in matched_positions:
-		var p: Vector2i = pos
-		var tile = grid[p.x][p.y]
-		if tile != null:
-			# Parallel animations for all matched tiles
-			tween.parallel().tween_property(tile, "scale", Vector2(0.0, 0.0), 0.15)
-			tween.parallel().tween_property(tile, "modulate:a", 0.0, 0.15)
-	await tween.finished
-	for pos2 in matched_positions:
-		var p2: Vector2i = pos2
-		var t2 = grid[p2.x][p2.y]
-		if t2 != null:
-			t2.queue_free()
-			grid[p2.x][p2.y] = null
-	_score += matched_positions.size()
-	var uis := get_tree().get_nodes_in_group("ui_manager")
-	if uis.size() > 0 and uis[0].has_method("update_score"):
-		uis[0].update_score(_score)
-	await get_tree().create_timer(0.02).timeout
+func _apply_specials_then_clear(seqs: Array) -> void:
+	var to_clear := {}
+	for s in seqs:
+		var positions: Array = s["positions"]
+		var length: int = s["length"]
+		var orientation: String = s["orientation"]
+		if length == 4:
+			var pivot: Vector2i = positions[2]
+			var tile = grid[pivot.x][pivot.y]
+			if tile != null and tile.has_method("set_special"):
+				tile.set_special(orientation == "h" ? "line_h" : "line_v")
+			# Clear others
+			for p in positions:
+				if p != pivot:
+					to_clear[p] = true
+		elif length >= 5:
+			var pivot5: Vector2i = positions[2]
+			var tile5 = grid[pivot5.x][pivot5.y]
+			if tile5 != null and tile5.has_method("set_special"):
+				tile5.set_special("bomb")
+			for p5 in positions:
+				if p5 != pivot5:
+					to_clear[p5] = true
+		else:
+			for p3 in positions:
+				to_clear[p3] = true
+	# Expand clears if specials reside inside clear set
+	var expanded := _expand_clears_with_specials(to_clear)
+	await _clear_matches(expanded.keys())
 
-func _apply_gravity() -> void:
-	# For each column, move tiles down to fill nulls
-	for x in range(grid_width):
-		var write_y := grid_height - 1
-		for y in range(grid_height - 1, -1, -1):
-			var tile = grid[x][y]
-			if tile != null:
-				if y != write_y:
-					grid[x][write_y] = tile
-					grid[x][y] = null
-					tile.grid_position = Vector2i(x, write_y)
-					var tween = create_tween()
-					tween.tween_property(tile, "position", Vector2(x * TILE_SIZE, write_y * TILE_SIZE), 0.1)
-					await tween.finished
-				write_y -= 1
-			else:
-				write_y -= 1
-
-func _refill_board() -> void:
-	# Spawn new tiles for empty cells at the top and animate falling into place
-	for x in range(grid_width):
-		for y in range(grid_height):
-			if grid[x][y] == null:
-				var tile_instance: Node2D = tile_scene.instantiate()
-				var spawn_y := -1
-				tile_instance.position = Vector2(x * TILE_SIZE, spawn_y * TILE_SIZE)
-				tile_instance.grid_position = Vector2i(x, y)
-				if tile_instance.has_method("set_type"):
-					(tile_instance as Node).call("set_type", _available_types[randi() % _available_types.size()])
-				add_child(tile_instance)
-				grid[x][y] = tile_instance
-				var tween = create_tween()
-				tween.tween_property(tile_instance, "position", Vector2(x * TILE_SIZE, y * TILE_SIZE), 0.1 + 0.02 * (grid_height - y))
-				await tween.finished
-
-func apply_bomb(center: Vector2i, radius: int = 1) -> void:
-	if _busy:
-		return
-	_busy = true
-	var positions := []
-	for dx in range(-radius, radius + 1):
-		for dy in range(-radius, radius + 1):
-			var px := center.x + dx
-			var py := center.y + dy
-			if px >= 0 and px < grid_width and py >= 0 and py < grid_height:
-				positions.append(Vector2i(px, py))
-	await _clear_matches(positions)
-	await _apply_gravity()
-	await _refill_board()
-	await _resolve_board_with_cascades()
-	_busy = false
-
-func shuffle_board(max_attempts: int = 20) -> void:
-	if _busy:
-		return
-	_busy = true
-	# Visual pulse
-	var tween_up := create_tween()
-	for x in range(grid_width):
-		for y in range(grid_height):
-			var tile = grid[x][y]
-			if tile != null:
-				tween_up.parallel().tween_property(tile, "scale", Vector2(1.1, 1.1), 0.08)
-	await tween_up.finished
-	# Reassign types
-	var tiles := []
-	for x2 in range(grid_width):
-		for y2 in range(grid_height):
-			if grid[x2][y2] != null:
-				tiles.append(grid[x2][y2].type)
-	if tiles.is_empty():
-		_busy = false
-		return
-	var attempt := 0
-	while attempt < max_attempts:
-		attempt += 1
-		tiles.shuffle()
-		var idx := 0
-		for sx in range(grid_width):
-			for sy in range(grid_height):
-				if grid[sx][sy] != null:
-					grid[sx][sy].set_type(tiles[idx])
-					idx += 1
-		var m := match_finder != null ? match_finder.find_matches(grid) : []
-		if m.is_empty():
-			break
-	# Visual back
-	var tween_down := create_tween()
-	for x3 in range(grid_width):
-		for y3 in range(grid_height):
-			var t = grid[x3][y3]
-			if t != null:
-				tween_down.parallel().tween_property(t, "scale", Vector2(1.0, 1.0), 0.08)
-	await tween_down.finished
-	_busy = false
+func _expand_clears_with_specials(marked: Dictionary) -> Dictionary:
+	var queue := []
+	for k in marked.keys():
+		queue.append(k)
+	while not queue.is_empty():
+		var pos: Vector2i = queue.pop_back()
+		var tile = grid[pos.x][pos.y]
+		if tile == null:
+			continue
+		if not tile.has_variable("special"):
+			continue
+		match tile.special:
+			"line_h":
+				for x in range(grid_width):
+					var p = Vector2i(x, pos.y)
+					if not marked.has(p):
+						marked[p] = true
+						queue.append(p)
+			"line_v":
+				for y in range(grid_height):
+					var p2 = Vector2i(pos.x, y)
+					if not marked.has(p2):
+						marked[p2] = true
+						queue.append(p2)
+			"bomb":
+				for dx in range(-1, 2):
+					for dy in range(-1, 2):
+						var px := pos.x + dx
+						var py := pos.y + dy
+						if px >= 0 and px < grid_width and py >= 0 and py < grid_height:
+							var p3 = Vector2i(px, py)
+							if not marked.has(p3):
+								marked[p3] = true
+								queue.append(p3)
+			_:
+				pass
+	return marked

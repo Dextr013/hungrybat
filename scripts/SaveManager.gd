@@ -5,13 +5,22 @@ class_name SaveManager
 const SAVE_KEY = "PlayerData"
 var score = 0
 var level = 1
+var boosters := {
+	"bomb": 3,
+	"shuffle": 3,
+}
 
 func save_score(new_score):
 	score = new_score
 	save_data()
 
+func save_boosters(new_bomb: int, new_shuffle: int) -> void:
+	boosters["bomb"] = max(0, new_bomb)
+	boosters["shuffle"] = max(0, new_shuffle)
+	save_data()
+
 func save_data():
-	var data = { "score": score, "level": level }
+	var data = { "score": score, "level": level, "boosters": boosters }
 	var json = JSON.stringify(data)
 	# PlayerPrefs аналог — FileAccess
 	var file = FileAccess.open("user://" + SAVE_KEY + ".json", FileAccess.WRITE)
@@ -21,11 +30,12 @@ func save_data():
 	if has_node("/root/YandexSDK"):
 		get_node("/root/YandexSDK").save_data(json)
 
-func load_data(json_data):
+func load_data(json_data = ""):
 	if json_data and json_data != "":
 		var parsed = JSON.parse_string(json_data)
 		score = parsed.score
 		level = parsed.level
+		if parsed.has("boosters"): boosters = parsed.boosters
 	else:
 		if FileAccess.file_exists("user://" + SAVE_KEY + ".json"):
 			var file = FileAccess.open("user://" + SAVE_KEY + ".json", FileAccess.READ)
@@ -33,6 +43,7 @@ func load_data(json_data):
 			var parsed = JSON.parse_string(json)
 			score = parsed.score
 			level = parsed.level
+			if parsed.has("boosters"): boosters = parsed.boosters
 			file.close()
 
 func get_score():
@@ -40,3 +51,6 @@ func get_score():
 
 func get_level():
 	return level
+
+func get_boosters():
+	return boosters

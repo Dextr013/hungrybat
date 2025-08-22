@@ -23,6 +23,14 @@ var goal_score = 500  # Пример цели
 
 func _ready():
 	add_to_group("ui_manager")
+	# Load boosters if SaveManager exists
+	var saver := get_node_or_null("/root/SaveManager")
+	if saver and saver.has_method("load_data"):
+		saver.load_data()
+		if saver.has_method("get_boosters"):
+			var b = saver.get_boosters()
+			if b.has("bomb"): bomb_count = int(b.bomb)
+			if b.has("shuffle"): shuffle_count = int(b.shuffle)
 	# Auto-wire if present
 	if score_text == null:
 		score_text = get_node_or_null("ScoreText")
@@ -59,6 +67,11 @@ func _ready():
 		pause_panel.visible = false
 	_update_booster_labels()
 	_update_booster_enabled()
+
+func _save_boosters_now() -> void:
+	var saver := get_node_or_null("/root/SaveManager")
+	if saver and saver.has_method("save_boosters"):
+		saver.save_boosters(bomb_count, shuffle_count)
 
 func _update_booster_labels() -> void:
 	var bomb_label := get_node_or_null("BombCount")
@@ -151,6 +164,7 @@ func use_bomb_booster():
 	bomb_count -= 1
 	_update_booster_labels()
 	_update_booster_enabled()
+	_save_boosters_now()
 	print("Bomb booster used")
 	# Toggle bomb targeting via input handler
 	var boards := get_tree().get_nodes_in_group("board_manager")
@@ -171,6 +185,7 @@ func use_shuffle_booster():
 	shuffle_count -= 1
 	_update_booster_labels()
 	_update_booster_enabled()
+	_save_boosters_now()
 	print("Shuffle booster used")
 	var boards := get_tree().get_nodes_in_group("board_manager")
 	if boards.size() > 0 and boards[0].has_method("shuffle_board"):
