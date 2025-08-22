@@ -164,6 +164,66 @@ func _bind_settings_controls() -> void:
 			yandex_sdk.show_rewarded_ad(func(): if moves_text: modesafe_set_moves(moves + 5), func(_): pass)
 			if audio_manager and audio_manager.has_method("resume_music"): audio_manager.resume_music()
 		)
+	# Leaderboard buttons
+	var lb_info: Button = get_node_or_null("SettingsPanel/LbInfoBtn")
+	if lb_info and yandex_sdk and yandex_sdk.has_method("get_leaderboard_info"):
+		lb_info.text = _tr("lb_info")
+		lb_info.pressed.connect(func(): yandex_sdk.get_leaderboard_info("Match3Leaderboard"))
+	var lb_entry: Button = get_node_or_null("SettingsPanel/LbEntryBtn")
+	if lb_entry and yandex_sdk and yandex_sdk.has_method("get_leaderboard_player_entry"):
+		lb_entry.text = _tr("lb_entry")
+		lb_entry.pressed.connect(func(): yandex_sdk.get_leaderboard_player_entry("Match3Leaderboard"))
+	var lb_entries: Button = get_node_or_null("SettingsPanel/LbEntriesBtn")
+	if lb_entries and yandex_sdk and yandex_sdk.has_method("get_leaderboard_entries"):
+		lb_entries.text = _tr("lb_entries")
+		lb_entries.pressed.connect(func(): yandex_sdk.get_leaderboard_entries("Match3Leaderboard"))
+	# Payments buttons
+	var pay_init: Button = get_node_or_null("SettingsPanel/PayInitBtn")
+	if pay_init and yandex_sdk and yandex_sdk.has_method("init_payments"):
+		pay_init.text = _tr("pay_init")
+		pay_init.pressed.connect(func(): yandex_sdk.init_payments(true))
+	var pay_buy: Button = get_node_or_null("SettingsPanel/PayBuyBtn")
+	if pay_buy and yandex_sdk and yandex_sdk.has_method("purchase"):
+		pay_buy.text = _tr("pay_buy")
+		pay_buy.pressed.connect(func(): yandex_sdk.purchase("demo_item", "payload"))
+	var pay_list: Button = get_node_or_null("SettingsPanel/PayListBtn")
+	if pay_list and yandex_sdk and yandex_sdk.has_method("get_purchases"):
+		pay_list.text = _tr("pay_list")
+		pay_list.pressed.connect(func(): yandex_sdk.get_purchases())
+	var pay_cat: Button = get_node_or_null("SettingsPanel/PayCatalogBtn")
+	if pay_cat and yandex_sdk and yandex_sdk.has_method("get_catalog"):
+		pay_cat.text = _tr("pay_catalog")
+		pay_cat.pressed.connect(func(): yandex_sdk.get_catalog())
+	var pay_cons: Button = get_node_or_null("SettingsPanel/PayConsumeBtn")
+	if pay_cons and yandex_sdk and yandex_sdk.has_method("consume_purchase"):
+		pay_cons.text = _tr("pay_consume")
+		pay_cons.pressed.connect(func(): yandex_sdk.consume_purchase("demo_token"))
+	# Reviews buttons
+	var r_can: Button = get_node_or_null("SettingsPanel/ReviewCanBtn")
+	if r_can and yandex_sdk and yandex_sdk.has_method("can_review"):
+		r_can.text = _tr("review_can")
+		r_can.pressed.connect(func(): yandex_sdk.can_review())
+	var r_req: Button = get_node_or_null("SettingsPanel/ReviewRequestBtn")
+	if r_req and yandex_sdk and yandex_sdk.has_method("request_review"):
+		r_req.text = _tr("review_request")
+		r_req.pressed.connect(func(): yandex_sdk.request_review())
+	# Invites
+	var inv_link: Button = get_node_or_null("SettingsPanel/InviteLinkBtn")
+	if inv_link and yandex_sdk and yandex_sdk.has_method("invite_link"):
+		inv_link.text = _tr("invite_link")
+		inv_link.pressed.connect(func(): yandex_sdk.invite_link({"ref":"demo"}))
+	var inv_get: Button = get_node_or_null("SettingsPanel/InviteGetBtn")
+	if inv_get and yandex_sdk and yandex_sdk.has_method("get_invite_param"):
+		inv_get.text = _tr("invite_get")
+		inv_get.pressed.connect(func(): yandex_sdk.get_invite_param("ref"))
+	var inv_show: Button = get_node_or_null("SettingsPanel/InviteShowBtn")
+	if inv_show and yandex_sdk and yandex_sdk.has_method("show_invite_button"):
+		inv_show.text = _tr("invite_show_btn")
+		inv_show.pressed.connect(func(): yandex_sdk.show_invite_button({}))
+	var inv_hide: Button = get_node_or_null("SettingsPanel/InviteHideBtn")
+	if inv_hide and yandex_sdk and yandex_sdk.has_method("hide_invite_button"):
+		inv_hide.text = _tr("invite_hide_btn")
+		inv_hide.pressed.connect(func(): yandex_sdk.hide_invite_button())
 
 func _setup_lang_selector() -> void:
 	var ob: OptionButton = get_node_or_null("SettingsPanel/LangSelect")

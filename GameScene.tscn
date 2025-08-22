@@ -129,6 +129,62 @@ text = "Login"
 position = Vector2(8, 196)
 text = "Show Rewarded"
 
+[node name="LbInfoBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 224)
+text = "LB Info"
+
+[node name="LbEntryBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(120, 224)
+text = "LB Entry"
+
+[node name="LbEntriesBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(232, 224)
+text = "LB Entries"
+
+[node name="PayInitBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 252)
+text = "Init Payments"
+
+[node name="PayBuyBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(120, 252)
+text = "Purchase"
+
+[node name="PayListBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(232, 252)
+text = "Purchases"
+
+[node name="PayCatalogBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(344, 252)
+text = "Catalog"
+
+[node name="PayConsumeBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(456, 252)
+text = "Consume"
+
+[node name="ReviewCanBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 280)
+text = "Can Review"
+
+[node name="ReviewRequestBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(120, 280)
+text = "Request Review"
+
+[node name="InviteLinkBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 308)
+text = "Invite Link"
+
+[node name="InviteGetBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(120, 308)
+text = "Get Invite Param"
+
+[node name="InviteShowBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(232, 308)
+text = "Show Invite Button"
+
+[node name="InviteHideBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(376, 308)
+text = "Hide Invite Button"
+
 [node name="AudioManager" type="Node" parent="UIManager"]
 script = ExtResource("7")
 

@@ -83,3 +83,80 @@ func submit_score(leaderboard_name: String, score: int) -> void:
 	if is_initialized and typeof(WebBus) != TYPE_NIL:
 		WebBus.set_leaderboard_score(leaderboard_name, score)
 		print("WebBus: submit score", leaderboard_name, score)
+
+# Leaderboards
+func get_leaderboard_info(name: String):
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		WebBus.get_leaderboard_info(name)
+
+func get_leaderboard_player_entry(name: String):
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		WebBus.get_leaderboard_player_entry(name)
+
+func get_leaderboard_entries(name: String):
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		WebBus.get_leaderboard_entries(name)
+
+# Payments
+func init_payments(signed: bool) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		WebBus.init_payments(signed)
+
+func purchase(id: String, payload: String) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.purchase(id, payload)
+
+func get_purchases() -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.get_purchases()
+
+func get_catalog() -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.get_catalog()
+
+func consume_purchase(token: String) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.consume_purchase(token)
+
+# Reviews
+func can_review() -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.can_rewiew()
+
+func request_review() -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.request_review()
+
+# Invites
+func invite_link(params: Dictionary) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.invite_link(params)
+
+func get_invite_param(key: String) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.get_invite_param(key)
+
+func show_invite_button(params: Dictionary) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		WebBus.show_invite_button(params)
+
+func hide_invite_button() -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		WebBus.hide_invite_button()
+
+# Data/Stats
+func set_data(d: Dictionary) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		WebBus.set_data(d)
+
+func get_data(keys: Array) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.get_data(keys)
+
+func set_stats(d: Dictionary) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		WebBus.set_stats(d)
+
+func get_stats(keys: Array) -> void:
+	if is_initialized and typeof(WebBus) != TYPE_NIL:
+		await WebBus.get_stats(keys)
