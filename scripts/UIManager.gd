@@ -19,6 +19,7 @@ var moves = INITIAL_MOVES
 var goal_score = 500  # Пример цели
 
 func _ready():
+	add_to_group("ui_manager")
 	if play_button:
 		play_button.pressed.connect(load_game_scene)
 	if pause_button:
@@ -68,23 +69,25 @@ func load_game_scene():
 func pause_game():
 	if yandex_sdk:
 		get_tree().paused = true
-		pause_panel.visible = true
-		pause_button.visible = false
-		resume_button.visible = true
+		if pause_panel: pause_panel.visible = true
+		if pause_button: pause_button.visible = false
+		if resume_button: resume_button.visible = true
 		yandex_sdk.gameplay_api_stop()
 		var tween = create_tween()
-		tween.tween_property(pause_panel, "modulate:a", 1.0, 0.3)
+		if pause_panel:
+			tween.tween_property(pause_panel, "modulate:a", 1.0, 0.3)
 		print("Game paused")
 
 func resume_game():
 	if yandex_sdk:
 		get_tree().paused = false
-		pause_panel.visible = false
-		pause_button.visible = true
-		resume_button.visible = false
+		if pause_panel: pause_panel.visible = false
+		if pause_button: pause_button.visible = true
+		if resume_button: resume_button.visible = false
 		yandex_sdk.gameplay_api_start()
 		var tween = create_tween()
-		tween.tween_property(pause_panel, "modulate:a", 0.0, 0.3)
+		if pause_panel:
+			tween.tween_property(pause_panel, "modulate:a", 0.0, 0.3)
 		print("Game resumed")
 
 func end_game(is_win):
@@ -96,8 +99,10 @@ func end_game(is_win):
 		print("Win!")
 	else:
 		print("Lose!")
-	get_tree().change_scene_to_file("res://MainMenu.tscn")
-	yandex_sdk.gameplay_api_stop()
+	if FileAccess.file_exists("res://MainMenu.tscn"):
+		get_tree().change_scene_to_file("res://MainMenu.tscn")
+	if yandex_sdk:
+		yandex_sdk.gameplay_api_stop()
 
 func use_bomb_booster():
 	if audio_manager:
@@ -115,5 +120,6 @@ func use_extra_move_booster():
 	if audio_manager:
 		audio_manager.play_match_sfx()
 	moves += 5
-	moves_text.text = "Moves: " + str(moves)
+	if moves_text:
+		moves_text.text = "Moves: " + str(moves)
 	print("Extra move booster used")

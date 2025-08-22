@@ -19,7 +19,7 @@ func _input(event):
 			first_tile_pos = grid_pos
 		else:
 			if board_manager.swap_tiles(first_tile_pos, grid_pos):
-				var ui := get_tree().root.get_node_or_null("UIManager")
-				if ui != null and ui.has_method("decrement_moves"):
-					ui.decrement_moves()
+				var uis := get_tree().get_nodes_in_group("ui_manager")
+				if uis.size() > 0 and uis[0].has_method("decrement_moves"):
+					uis[0].decrement_moves()
 			first_tile_pos = Vector2i(-1, -1)

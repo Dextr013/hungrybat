@@ -121,9 +121,9 @@ func _clear_matches(matched_positions: Array) -> void:
 			tile.queue_free()
 			grid[p.x][p.y] = null
 	_score += matched_positions.size()
-	var ui := get_tree().root.get_node_or_null("UIManager")
-	if ui != null and ui.has_method("update_score"):
-		ui.update_score(_score)
+	var uis := get_tree().get_nodes_in_group("ui_manager")
+	if uis.size() > 0 and uis[0].has_method("update_score"):
+		uis[0].update_score(_score)
 	# Small delay for clarity if desired
 	await get_tree().create_timer(0.05).timeout
 
