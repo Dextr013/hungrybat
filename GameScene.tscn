@@ -113,6 +113,22 @@ size_flags_horizontal = 3
 position = Vector2(8, 112)
 text = "Daily Reward"
 
+[node name="ShowBannerBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 140)
+text = "Show Banner"
+
+[node name="HideBannerBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(120, 140)
+text = "Hide Banner"
+
+[node name="LoginBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 168)
+text = "Login"
+
+[node name="RewardedTestBtn" type="Button" parent="UIManager/SettingsPanel"]
+position = Vector2(8, 196)
+text = "Show Rewarded"
+
 [node name="AudioManager" type="Node" parent="UIManager"]
 script = ExtResource("7")
 

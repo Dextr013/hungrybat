@@ -143,6 +143,27 @@ func _bind_settings_controls() -> void:
 		mcheck.toggled.connect(func(pressed): audio_manager.set_music_enabled(pressed); _save_settings_now())
 	if scheck and audio_manager and audio_manager.has_method("set_sfx_enabled"):
 		scheck.toggled.connect(func(pressed): audio_manager.set_sfx_enabled(pressed); _save_settings_now())
+	# Banner/Auth/Rewarded test
+	var show_b: Button = get_node_or_null("SettingsPanel/ShowBannerBtn")
+	if show_b and yandex_sdk and yandex_sdk.has_method("show_banner"):
+		show_b.text = _tr("show_banner")
+		show_b.pressed.connect(func(): yandex_sdk.show_banner())
+	var hide_b: Button = get_node_or_null("SettingsPanel/HideBannerBtn")
+	if hide_b and yandex_sdk and yandex_sdk.has_method("hide_banner"):
+		hide_b.text = _tr("hide_banner")
+		hide_b.pressed.connect(func(): yandex_sdk.hide_banner())
+	var login_b: Button = get_node_or_null("SettingsPanel/LoginBtn")
+	if login_b and yandex_sdk and yandex_sdk.has_method("open_auth_dialog"):
+		login_b.text = _tr("login")
+		login_b.pressed.connect(func(): yandex_sdk.open_auth_dialog())
+	var reward_b: Button = get_node_or_null("SettingsPanel/RewardedTestBtn")
+	if reward_b and yandex_sdk and yandex_sdk.has_method("show_rewarded_ad"):
+		reward_b.text = _tr("rewarded_test")
+		reward_b.pressed.connect(func():
+			if audio_manager and audio_manager.has_method("pause_music"): audio_manager.pause_music()
+			yandex_sdk.show_rewarded_ad(func(): if moves_text: modesafe_set_moves(moves + 5), func(_): pass)
+			if audio_manager and audio_manager.has_method("resume_music"): audio_manager.resume_music()
+		)
 
 func _setup_lang_selector() -> void:
 	var ob: OptionButton = get_node_or_null("SettingsPanel/LangSelect")
@@ -319,19 +340,32 @@ func end_game(is_win):
 		yandex_sdk.gameplay_api_stop()
 
 func _handle_defeat_with_ad() -> void:
-	# Pause audio while ad
-	if audio_manager and audio_manager.has_method("pause_music"):
-		audio_manager.pause_music()
-	if yandex_sdk and yandex_sdk.has_method("show_ad"):
-		var done := false
-		yandex_sdk.show_ad(func(_): done = true)
-		while not done:
+	# Offer continue with rewarded ad
+	var loc_yes := _tr("continue")
+	var loc_no := _tr("restart")
+	var q := _tr("continue_question")
+	var dialog := ConfirmationDialog.new()
+	dialog.dialog_text = q
+	dialog.ok_button_text = loc_yes
+	dialog.get_cancel_button().text = loc_no
+	get_tree().root.add_child(dialog)
+	dialog.popup_centered()
+	var confirmed := await dialog.confirmed
+	if confirmed and yandex_sdk and yandex_sdk.has_method("show_rewarded_ad"):
+		if audio_manager and audio_manager.has_method("pause_music"):
+			audio_manager.pause_music()
+		var was_rewarded := false
+		yandex_sdk.show_rewarded_ad(func(): was_rewarded = true, func(_): pass)
+		while not was_rewarded:
 			await get_tree().process_frame
-	# Resume audio after ad
-	if audio_manager and audio_manager.has_method("resume_music"):
-		audio_manager.resume_music()
-	# Offer continue or restart
-	await _prompt_continue_or_restart()
+		if audio_manager and audio_manager.has_method("resume_music"):
+			audio_manager.resume_music()
+		if moves_text:
+			modesafe_set_moves(moves + 5)
+		return
+	# restart on cancel or no rewarded
+	get_tree().reload_current_scene()
+	return
 
 func _prompt_continue_or_restart() -> void:
 	var dialog := ConfirmationDialog.new()

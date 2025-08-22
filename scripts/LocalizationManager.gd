@@ -19,6 +19,10 @@ var _strings := {
 		"continue_question": "Continue game?",
 		"continue": "Continue",
 		"restart": "Restart",
+		"show_banner": "Show Banner",
+		"hide_banner": "Hide Banner",
+		"login": "Login",
+		"rewarded_test": "Show Rewarded",
 	},
 	"ru": {
 		"score": "Очки",
@@ -36,6 +40,10 @@ var _strings := {
 		"continue_question": "Продолжить игру?",
 		"continue": "Продолжить",
 		"restart": "Заново",
+		"show_banner": "Показать баннер",
+		"hide_banner": "Скрыть баннер",
+		"login": "Войти",
+		"rewarded_test": "Показать наградную",
 	}
 }
 
