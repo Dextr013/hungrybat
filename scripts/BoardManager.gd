@@ -13,6 +13,7 @@ var match_finder: Node = null
 
 var _available_types := ["apple", "banana", "orange", "grape"]
 var _score: int = 0
+var _busy: bool = false
 
 func _ready() -> void:
 	add_to_group("board_manager")
@@ -26,6 +27,9 @@ func _ready() -> void:
 
 func get_tile_size() -> int:
 	return TILE_SIZE
+
+func is_busy() -> bool:
+	return _busy
 
 func _init_grid() -> void:
 	grid.resize(grid_width)
@@ -78,13 +82,15 @@ func is_valid_swap(a: Vector2i, b: Vector2i) -> bool:
 	return ok
 
 func swap_tiles(a: Vector2i, b: Vector2i) -> bool:
+	if _busy:
+		return false
 	if (abs(a.x - b.x) + abs(a.y - b.y)) != 1:
 		return false
 	var t1 = grid[a.x][a.y]
 	var t2 = grid[b.x][b.y]
 	if t1 == null or t2 == null:
 		return false
-
+	_busy = true
 	var tween = create_tween()
 	tween.tween_property(t1, "position", Vector2(b.x * TILE_SIZE, b.y * TILE_SIZE), swap_duration)
 	tween.parallel().tween_property(t2, "position", Vector2(a.x * TILE_SIZE, a.y * TILE_SIZE), swap_duration)
@@ -98,9 +104,11 @@ func swap_tiles(a: Vector2i, b: Vector2i) -> bool:
 		tween_back.parallel().tween_property(t2, "position", Vector2(b.x * TILE_SIZE, b.y * TILE_SIZE), swap_duration)
 		await tween_back.finished
 		_swap_in_grid(a, b)
+		_busy = false
 		return false
 
 	await _resolve_board_with_cascades()
+	_busy = false
 	return true
 
 func _resolve_board_with_cascades() -> void:
@@ -113,19 +121,27 @@ func _resolve_board_with_cascades() -> void:
 		await _refill_board()
 
 func _clear_matches(matched_positions: Array) -> void:
-	# Remove matched tiles and update score
+	# Animate removal, then free and update score
+	var tween := create_tween()
 	for pos in matched_positions:
 		var p: Vector2i = pos
 		var tile = grid[p.x][p.y]
 		if tile != null:
-			tile.queue_free()
-			grid[p.x][p.y] = null
+			# Parallel animations for all matched tiles
+			tween.parallel().tween_property(tile, "scale", Vector2(0.0, 0.0), 0.15)
+			tween.parallel().tween_property(tile, "modulate:a", 0.0, 0.15)
+	await tween.finished
+	for pos2 in matched_positions:
+		var p2: Vector2i = pos2
+		var t2 = grid[p2.x][p2.y]
+		if t2 != null:
+			t2.queue_free()
+			grid[p2.x][p2.y] = null
 	_score += matched_positions.size()
 	var uis := get_tree().get_nodes_in_group("ui_manager")
 	if uis.size() > 0 and uis[0].has_method("update_score"):
 		uis[0].update_score(_score)
-	# Small delay for clarity if desired
-	await get_tree().create_timer(0.05).timeout
+	await get_tree().create_timer(0.02).timeout
 
 func _apply_gravity() -> void:
 	# For each column, move tiles down to fill nulls
@@ -163,6 +179,9 @@ func _refill_board() -> void:
 				await tween.finished
 
 func apply_bomb(center: Vector2i, radius: int = 1) -> void:
+	if _busy:
+		return
+	_busy = true
 	var positions := []
 	for dx in range(-radius, radius + 1):
 		for dy in range(-radius, radius + 1):
@@ -174,26 +193,48 @@ func apply_bomb(center: Vector2i, radius: int = 1) -> void:
 	await _apply_gravity()
 	await _refill_board()
 	await _resolve_board_with_cascades()
+	_busy = false
 
 func shuffle_board(max_attempts: int = 20) -> void:
-	var tiles := []
+	if _busy:
+		return
+	_busy = true
+	# Visual pulse
+	var tween_up := create_tween()
 	for x in range(grid_width):
 		for y in range(grid_height):
-			if grid[x][y] != null:
-				tiles.append(grid[x][y].type)
+			var tile = grid[x][y]
+			if tile != null:
+				tween_up.parallel().tween_property(tile, "scale", Vector2(1.1, 1.1), 0.08)
+	await tween_up.finished
+	# Reassign types
+	var tiles := []
+	for x2 in range(grid_width):
+		for y2 in range(grid_height):
+			if grid[x2][y2] != null:
+				tiles.append(grid[x2][y2].type)
 	if tiles.is_empty():
+		_busy = false
 		return
 	var attempt := 0
 	while attempt < max_attempts:
 		attempt += 1
 		tiles.shuffle()
 		var idx := 0
-		for x in range(grid_width):
-			for y in range(grid_height):
-				if grid[x][y] != null:
-					grid[x][y].set_type(tiles[idx])
+		for sx in range(grid_width):
+			for sy in range(grid_height):
+				if grid[sx][sy] != null:
+					grid[sx][sy].set_type(tiles[idx])
 					idx += 1
-		# If no immediate matches after shuffle, accept
 		var m := match_finder != null ? match_finder.find_matches(grid) : []
 		if m.is_empty():
 			break
+	# Visual back
+	var tween_down := create_tween()
+	for x3 in range(grid_width):
+		for y3 in range(grid_height):
+			var t = grid[x3][y3]
+			if t != null:
+				tween_down.parallel().tween_property(t, "scale", Vector2(1.0, 1.0), 0.08)
+	await tween_down.finished
+	_busy = false

@@ -36,12 +36,24 @@ fit_content = true
 position = Vector2(0, 80)
 texture_normal = ExtResource("4")
 
+[node name="BombCount" type="Label" parent="UIManager"]
+position = Vector2(0, 120)
+text = "x3"
+
 [node name="BoosterShuffle" type="TextureButton" parent="UIManager"]
 position = Vector2(40, 80)
 texture_normal = ExtResource("5")
 
+[node name="ShuffleCount" type="Label" parent="UIManager"]
+position = Vector2(40, 120)
+text = "x3"
+
 [node name="BoosterExtra" type="TextureButton" parent="UIManager"]
 position = Vector2(80, 80)
 texture_normal = ExtResource("6")
+
+[node name="ExtraCount" type="Label" parent="UIManager"]
+position = Vector2(80, 120)
+text = "+5"
 
 [editable path="/GameRoot/UIManager"]

@@ -14,6 +14,9 @@ extends CanvasLayer
 @export var booster3_button: Button  # Extra move booster
 @export var goal_text: RichTextLabel  # Для отображения цели
 
+var bomb_count := 3
+var shuffle_count := 3
+
 const INITIAL_MOVES = 30
 var moves = INITIAL_MOVES
 var goal_score = 500  # Пример цели
@@ -54,6 +57,24 @@ func _ready():
 		goal_text.text = "Goal: " + str(goal_score)
 	if pause_panel:
 		pause_panel.visible = false
+	_update_booster_labels()
+	_update_booster_enabled()
+
+func _update_booster_labels() -> void:
+	var bomb_label := get_node_or_null("BombCount")
+	if bomb_label:
+		bomb_label.text = "x" + str(bomb_count)
+	var shuf_label := get_node_or_null("ShuffleCount")
+	if shuf_label:
+		shuf_label.text = "x" + str(shuffle_count)
+	var extra_label := get_node_or_null("ExtraCount")
+	if extra_label:
+		extra_label.text = "+5"
+
+func _update_booster_enabled() -> void:
+	if booster1_button: booster1_button.disabled = bomb_count <= 0
+	if booster2_button: booster2_button.disabled = shuffle_count <= 0
+	# Extra moves is infinite for now
 
 func update_score(score):
 	if score_text:
@@ -125,6 +146,11 @@ func end_game(is_win):
 func use_bomb_booster():
 	if audio_manager:
 		audio_manager.play_match_sfx()
+	if bomb_count <= 0:
+		return
+	bomb_count -= 1
+	_update_booster_labels()
+	_update_booster_enabled()
 	print("Bomb booster used")
 	# Toggle bomb targeting via input handler
 	var boards := get_tree().get_nodes_in_group("board_manager")
@@ -140,6 +166,11 @@ func _on_bomb_pressed():
 func use_shuffle_booster():
 	if audio_manager:
 		audio_manager.play_match_sfx()
+	if shuffle_count <= 0:
+		return
+	shuffle_count -= 1
+	_update_booster_labels()
+	_update_booster_enabled()
 	print("Shuffle booster used")
 	var boards := get_tree().get_nodes_in_group("board_manager")
 	if boards.size() > 0 and boards[0].has_method("shuffle_board"):

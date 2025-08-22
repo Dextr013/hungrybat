@@ -15,6 +15,8 @@ func enable_bomb_mode(enabled: bool) -> void:
 func _input(event):
 	if board_manager == null:
 		return
+	if board_manager.has_method("is_busy") and board_manager.is_busy():
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		var world_pos = get_viewport().get_mouse_position()
 		var tile_size: int = board_manager.get_tile_size()
@@ -24,6 +26,9 @@ func _input(event):
 			_bomb_mode_enabled = false
 			if board_manager.has_method("apply_bomb"):
 				await board_manager.apply_bomb(grid_pos, 1)
+				var uis1 := get_tree().get_nodes_in_group("ui_manager")
+				if uis1.size() > 0 and uis1[0].has_method("decrement_moves"):
+					uis1[0].decrement_moves()
 			return
 
 		if first_tile_pos.x == -1:
