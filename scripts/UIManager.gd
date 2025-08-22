@@ -20,6 +20,7 @@ var shuffle_count := 3
 const INITIAL_MOVES = 30
 var moves = INITIAL_MOVES
 var goal_score = 500  # Пример цели
+var endless_mode: bool = true
 
 func _ready():
 	add_to_group("ui_manager")
@@ -60,9 +61,9 @@ func _ready():
 	if booster3_button:
 		booster3_button.pressed.connect(use_extra_move_booster)
 	if moves_text:
-		moves_text.text = "Moves: " + str(moves)
+		moves_text.text = endless_mode ? "Moves: ∞" : "Moves: " + str(moves)
 	if goal_text:
-		goal_text.text = "Goal: " + str(goal_score)
+		goal_text.visible = not endless_mode
 	if pause_panel:
 		pause_panel.visible = false
 	_update_booster_labels()
@@ -92,11 +93,13 @@ func _update_booster_enabled() -> void:
 func update_score(score):
 	if score_text:
 		score_text.text = "Score: " + str(score)
-	if score >= goal_score:
+	if not endless_mode and score >= goal_score:
 		print("Goal reached!")
 		end_game(true)  # Победа
 
 func decrement_moves():
+	if endless_mode:
+		return
 	if moves_text:
 		modesafe_set_moves(moves - 1)
 		if moves <= 0:
@@ -105,7 +108,7 @@ func decrement_moves():
 func modesafe_set_moves(new_moves: int) -> void:
 	moves = new_moves
 	if moves_text:
-		moves_text.text = "Moves: " + str(moves)
+		moves_text.text = endless_mode ? "Moves: ∞" : "Moves: " + str(moves)
 
 func load_game_scene():
 	print("Loading GameScene...")
@@ -151,7 +154,7 @@ func end_game(is_win):
 		print("Win!")
 	else:
 		print("Lose!")
-	if FileAccess.file_exists("res://MainMenu.tscn"):
+	if FileAccess.file_exists("res://MainMenu.tscn") and not endless_mode:
 		get_tree().change_scene_to_file("res://MainMenu.tscn")
 	if yandex_sdk:
 		yandex_sdk.gameplay_api_stop()

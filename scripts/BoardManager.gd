@@ -112,6 +112,9 @@ func swap_tiles(a: Vector2i, b: Vector2i) -> bool:
 		return false
 
 	await _resolve_board_with_cascades_create_specials()
+	# After cascades, ensure there is at least one valid move; if none, auto-shuffle
+	if not _exists_any_valid_swap():
+		await shuffle_board()
 	_busy = false
 	return true
 
@@ -280,6 +283,8 @@ func apply_bomb(center: Vector2i, radius: int = 1) -> void:
 	await _apply_gravity()
 	await _refill_board()
 	await _resolve_board_with_cascades_create_specials()
+	if not _exists_any_valid_swap():
+		await shuffle_board()
 	_busy = false
 
 func shuffle_board(max_attempts: int = 20) -> void:
@@ -314,7 +319,7 @@ func shuffle_board(max_attempts: int = 20) -> void:
 					grid[sx][sy].set_type(tiles[idx])
 					idx += 1
 		var m := match_finder != null ? match_finder.find_matches(grid) : []
-		if m.is_empty():
+		if m.is_empty() and _exists_any_valid_swap():
 			break
 	# Visual back
 	var tween_down := create_tween()
@@ -325,3 +330,22 @@ func shuffle_board(max_attempts: int = 20) -> void:
 				tween_down.parallel().tween_property(t, "scale", Vector2(1.0, 1.0), 0.08)
 	await tween_down.finished
 	_busy = false
+
+func _exists_any_valid_swap() -> bool:
+	for x in range(grid_width):
+		for y in range(grid_height):
+			var p = Vector2i(x, y)
+			var neighbors = [Vector2i(x + 1, y), Vector2i(x, y + 1)]
+			for n in neighbors:
+				if n.x < grid_width and n.y < grid_height:
+					# simulate swap
+					var t1 = grid[p.x][p.y]
+					var t2 = grid[n.x][n.y]
+					if t1 == null or t2 == null:
+						continue
+					_swap_in_grid(p, n)
+					var ok = match_finder != null and match_finder.find_matches(grid).size() > 0
+					_swap_in_grid(p, n)
+					if ok:
+						return true
+	return false
